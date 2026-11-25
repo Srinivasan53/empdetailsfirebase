@@ -27,185 +27,224 @@ Step 6: Display the employee details in MainActivity file.
 Step 7: Save and run the application.
 
 ## PROGRAM:
-
+```
 /*
 Program to print the DatabaseTable using the firebasedatabase”.
-Developed by: SRINIVASAN S
-Registeration Number : 212224220105
+Developed by: SRI SRINIVASAN K
+Registeration Number : 212224220104
 */
-## MainActivity.java
 ```
-package com.example.ex_01_realtimedatabase;
+
+## A.Activity_Main.XML
+```java
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
+    <EditText
+        android:id="@+id/etName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Name"
+        android:inputType="textPersonName" />
+
+    <EditText
+        android:id="@+id/etAge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Age"
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/etSalary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Salary"
+        android:inputType="numberDecimal" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btnAdd"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Add" />
+
+        <Button
+            android:id="@+id/btnDelete"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Delete" />
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/listView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>
+
+```
+## B. Mainctvity.java
+```java
+package com.example.pmd1;
+
 import android.os.Bundle;
 import android.widget.*;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.database.*;
+
 import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
+
     EditText etName, etAge, etSalary;
-    Button btnAdd, btnUpdate, btnDelete;
+    Button btnAdd, btnDelete;
     ListView listView;
+
     DatabaseReference dbRef;
+
     ArrayList<String> items = new ArrayList<>();
     ArrayList<String> keys = new ArrayList<>();
+
     ArrayAdapter<String> adapter;
     String selectedKey = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         etName = findViewById(R.id.etName);
         etAge = findViewById(R.id.etAge);
         etSalary = findViewById(R.id.etSalary);
+
         btnAdd = findViewById(R.id.btnAdd);
-        btnUpdate = findViewById(R.id.btnUpdate);
         btnDelete = findViewById(R.id.btnDelete);
+
         listView = findViewById(R.id.listView);
-        dbRef = FirebaseDatabase.getInstance()
+
+        dbRef = FirebaseDatabase.getInstance("https://pmd1-218e3-default-rtdb.firebaseio.com")
                 .getReference("Employees");
+
         adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_list_item_1,
                 items
         );
+
         listView.setAdapter(adapter);
-        // Display employees from Firebase
+
+        // Read employee data from Firebase
         dbRef.addValueEventListener(new ValueEventListener() {
+
             @Override
-            public void onDataChange(DataSnapshot snapshot) {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
                 items.clear();
                 keys.clear();
+
                 for (DataSnapshot d : snapshot.getChildren()) {
+
                     Emp e = d.getValue(Emp.class);
+
                     if (e != null) {
-                        items.add(e.name + " | "
-                                + e.age + " | " + e.salary);
+                        items.add(e.name + " | " + e.age
+                                + " | " + e.salary);
+
                         keys.add(d.getKey());
                     }
                 }
+
                 adapter.notifyDataSetChanged();
             }
+
             @Override
-            public void onCancelled(DatabaseError error) {
+            public void onCancelled(@NonNull DatabaseError error) {
                 Toast.makeText(MainActivity.this,
-                        "Read failed: " + error.getMessage(),
-                        Toast.LENGTH_LONG).show();
+                        "Failed to load data",
+                        Toast.LENGTH_SHORT).show();
             }
         });
-        // Add employee
+
+        // ADD employee
         btnAdd.setOnClickListener(v -> {
-            String name = etName.getText().toString().trim();
-            String age = etAge.getText().toString().trim();
-            String salary = etSalary.getText().toString().trim();
-            if (name.isEmpty() || age.isEmpty()
-                    || salary.isEmpty()) {
-                Toast.makeText(this,
-                        "Please fill all fields",
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-            String key = dbRef.push().getKey();
-            if (key == null) {
-                Toast.makeText(this,
-                        "Unable to generate employee ID",
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-            Emp e = new Emp(key, name, age, salary);
-            btnAdd.setEnabled(false);
-            dbRef.child(key).setValue(e)
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this,
-                                "Employee saved successfully!",
-                                Toast.LENGTH_SHORT).show();
-                        btnAdd.setEnabled(true);
-                        // Keep fields filled after adding
-                    })
-                    .addOnFailureListener(error -> {
-                        Toast.makeText(this,
-                                "Save failed: "
-                                        + error.getMessage(),
-                                Toast.LENGTH_LONG).show();
-                        btnAdd.setEnabled(true);
-                    });
-        });
-        // Update employee
-        btnUpdate.setOnClickListener(v -> {
-            if (selectedKey == null) {
-                Toast.makeText(this,
-                        "Select an employee first",
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
 
             String name = etName.getText().toString().trim();
             String age = etAge.getText().toString().trim();
             String salary = etSalary.getText().toString().trim();
-            if (name.isEmpty() || age.isEmpty()
-                    || salary.isEmpty()) {
+
+            if (name.isEmpty() || age.isEmpty() || salary.isEmpty()) {
                 Toast.makeText(this,
-                        "Please fill all fields",
+                        "Enter all details",
                         Toast.LENGTH_SHORT).show();
                 return;
             }
-            Emp e = new Emp(selectedKey, name, age, salary);
-            dbRef.child(selectedKey).setValue(e)
-                    .addOnSuccessListener(aVoid -> {
+
+            Emp e = new Emp(name, age, salary);
+
+            dbRef.push().setValue(e)
+                    .addOnSuccessListener(unused -> {
                         Toast.makeText(this,
-                                "Employee updated successfully!",
+                                "Employee Added",
                                 Toast.LENGTH_SHORT).show();
                         clearFields();
                     })
-                    .addOnFailureListener(error ->
-                            Toast.makeText(this,
-                                    "Update failed: "
-                                            + error.getMessage(),
-                                    Toast.LENGTH_LONG).show()
-                    );
+                    .addOnFailureListener(error -> Toast.makeText(this,
+                            "Add Failed",
+                            Toast.LENGTH_SHORT).show());
         });
-        // Delete employee
+
+        // Select employee from ListView
+        listView.setOnItemClickListener((p, v, pos, id) -> {
+
+            selectedKey = keys.get(pos);
+
+            Toast.makeText(this,
+                    "Employee Selected",
+                    Toast.LENGTH_SHORT).show();
+        });
+
+        // DELETE employee
         btnDelete.setOnClickListener(v -> {
-            if (selectedKey == null) {
+
+            if (selectedKey != null) {
+
+                dbRef.child(selectedKey).removeValue()
+                        .addOnSuccessListener(unused -> {
+                            Toast.makeText(this,
+                                    "Employee Deleted",
+                                    Toast.LENGTH_SHORT).show();
+                            clearFields();
+                        })
+                        .addOnFailureListener(error -> Toast.makeText(this,
+                                "Delete Failed",
+                                Toast.LENGTH_SHORT).show());
+
+            } else {
                 Toast.makeText(this,
                         "Select an employee first",
                         Toast.LENGTH_SHORT).show();
-                return;
             }
-            dbRef.child(selectedKey).removeValue()
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this,
-                                "Employee deleted successfully!",
-                                Toast.LENGTH_SHORT).show();
-                        clearFields();
-                    })
-                    .addOnFailureListener(error ->
-                            Toast.makeText(this,
-                                    "Delete failed: "
-                                            + error.getMessage(),
-                                    Toast.LENGTH_LONG).show()
-                    );
         });
-        // Select employee from the list
-        listView.setOnItemClickListener(
-                (parent, view, position, id) -> {
-                    selectedKey = keys.get(position);
-                    dbRef.child(selectedKey).get()
-                            .addOnSuccessListener(snapshot -> {
-                                Emp e = snapshot.getValue(Emp.class);
-                                if (e != null) {
-                                    etName.setText(e.name);
-                                    etAge.setText(e.age);
-                                    etSalary.setText(e.salary);
-                                }
-                            })
-                            .addOnFailureListener(error ->
-                                    Toast.makeText(this,
-                                            "Unable to load employee",
-                                            Toast.LENGTH_SHORT).show()
-                            );
-                });
     }
-    // Clear fields after update or delete
+
     private void clearFields() {
         etName.setText("");
         etAge.setText("");
@@ -213,72 +252,28 @@ public class MainActivity extends AppCompatActivity {
         selectedKey = null;
     }
 }
+
 ```
-## activity_main.xml
-```
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
-    <EditText
-        android:id="@+id/etName"
-        android:layout_width="match_parent"
-        android:layout_height="55dp"
-        android:hint="Name" />
-    <EditText
-        android:id="@+id/etAge"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Age"
-        android:inputType="number" />
-    <EditText
-        android:id="@+id/etSalary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Salary"
-        android:inputType="number" />
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
-            android:id="@+id/btnAdd"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Add" />
-        <Button
-            android:id="@+id/btnUpdate"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Update" />
-        <Button
-            android:id="@+id/btnDelete"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Delete" />
-    </LinearLayout>
-    <ListView
-        android:id="@+id/listView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-</LinearLayout>
-```
-## Emp.java
-```
-package com.example.ex_01_realtimedatabase;
+## C. Emp.java
+```java
+package com.example.pmd1;
+
 public class Emp {
     public String id;
     public String name;
     public String age;
     public String salary;
+
     public Emp() {
+        // Required for Firebase
     }
+
+    public Emp(String name, String age, String salary) {
+        this.name = name;
+        this.age = age;
+        this.salary = salary;
+    }
+
     public Emp(String id, String name, String age, String salary) {
         this.id = id;
         this.name = name;
@@ -286,38 +281,16 @@ public class Emp {
         this.salary = salary;
     }
 }
-```
-## AndroidManifest.xml
-```
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.EX_01_RealTimeDatabase">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>
+
 ```
 ## OUTPUT
 
-<img width="262" height="546" alt="Screenshot 2026-11-05 090929" src="https://github.com/user-attachments/assets/99908ae9-5b83-4ffe-8f3e-c0f563d0f75b" />
+<img width="1920" height="1200" alt="Screenshot (95)" src="https://github.com/user-attachments/assets/148ac18b-99f8-4d91-b070-07bd53d64bcd" />
 
-<img width="1462" height="701" alt="Screenshot 2026-11-05 091854" src="https://github.com/user-attachments/assets/0c8bce50-5313-43c2-8e79-6ae7718f0e30" />
+<img width="1920" height="1200" alt="Screenshot (97)" src="https://github.com/user-attachments/assets/a1bc0033-0dcb-4eee-be37-ccfcb7c2bcc1" />
+
+<img width="1920" height="1200" alt="Screenshot (96)" src="https://github.com/user-attachments/assets/31204c7f-ffce-4d79-bad3-e6e90ddab39d" />
+
 
 
 ## RESULT
